@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ts.library.dao.IBorrowInfoDao">
+
+    <resultMap id="borrowInfoResultMap" type="com.ts.library.entity.BorrowInfo">
+        <id column="info_id" property="infoId" jdbcType="SMALLINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="administrator" property="administrator" jdbcType="VARCHAR"/>
+        <result column="apply_borrowing_time" property="applyBorrowingTime" jdbcType="DATE"/>
+        <result column="approval_borrowing_time" property="approvalBorrowingTime" jdbcType="DATE"/>
+        <result column="return_time" property="returnTime" jdbcType="DATE"/>
+        <result column="borrowing_status" property="borrowingStatus" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--根据参数查询info,包括查询总的和模糊查询-->
+    <select id="queryAllInfo" resultMap="borrowInfoResultMap" parameterType="com.ts.library.entity.BorrowInfo">
+        select
+        info_id,
+        name,
+        title,
+        administrator,
+        apply_borrowing_time,
+        approval_borrowing_time,
+        return_time,
+        borrowing_status
+        from library.borrow_info
+        <where>
+            <if test="name != null and !&quot;&quot;.equals(name.trim())">
+                and upper(name) regexp #{name}
+            </if>
+            <if test="title != null and !&quot;&quot;.equals(title.trim())">
+                and upper(title) regexp #{title}
+            </if>
+            <if test="administrator != null and !&quot;&quot;.equals(administrator.trim())">
+                and upper(administrator) regexp #{administrator}
+            </if>
+            <if test="borrowing_status != null and !&quot;&quot;.equals(borrowing_status.trim())">
+                and borrowing_status = #{borrowing_status}
+            </if>
+        </where>
+    </select>
+
+    <!--新增租借信息,用于用户申请租借书籍后添加租借记录-->
+    <insert id="addInfo" parameterType="com.ts.library.entity.BorrowInfo" useGeneratedKeys="true" keyProperty="infoId">
+        insert into library.borrow_info (
+        name,
+        title,
+        administrator,
+        apply_borrowing_time,
+        borrowing_status
+        )
+        value (
+        #{name},
+        #{title},
+        #{administrator},
+        curdate(),
+        '待审核'
+        )
+    </insert>
+
+    <!--更新租借记录,用于管理员审批之后更新信息-->
+    <update id="editInfo" parameterType="SHORT">
+        update library.borrow_info
+        <set>
+            approval_borrowing_time = curdate(),
+            borrowing_status = '租借ing'
+        </set>
+        <where>
+            info_id = #{infoId}
+        </where>
+    </update>
+
+    <!--更新租借记录,用于管理员拒绝申请之后更新信息-->
+    <update id="refuseInfo" parameterType="SHORT">
+        update library.borrow_info
+        <set>
+            borrowing_status = '已拒绝'
+        </set>
+        <where>
+            info_id = #{infoId}
+        </where>
+    </update>
+
+    <!--根据info_id删除租借记录,用于用户归还书籍后删除租借记录-->
+    <update id="delInfo" parameterType="SHORT">
+        update library.borrow_info
+        <set>
+            return_time = curdate(),
+            borrowing_status = '已归还'
+        </set>
+        <where>
+            info_id = #{infoId}
+        </where>
+    </update>
+
+</mapper>

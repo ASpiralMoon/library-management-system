@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ts.library.dao.IBookDao">
+
+    <resultMap id="bookResultMap" type="com.ts.library.entity.Book">
+        <id column="book_id" property="bookId" jdbcType="SMALLINT"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="author" property="author" jdbcType="VARCHAR"/>
+        <result column="press" property="press" jdbcType="VARCHAR"/>
+        <result column="type_id" property="typeId" jdbcType="TINYINT"/>
+        <result column="amount" property="amount" jdbcType="SMALLINT"/>
+        <result column="stock" property="stock" jdbcType="SMALLINT"/>
+        <result column="last_updated_time" property="lastUpdatedTime" jdbcType="DATE"/>
+        <result column="validity" property="validity" jdbcType="TINYINT"/>
+        <result column="type" property="type" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="checkBook" parameterType="com.ts.library.entity.Book">
+        select
+        book_id
+        from library.book
+        <where>
+            title = #{title}
+            and author = #{author}
+            and press = #{press}
+            and type_id = {typeId}
+            and validity = 1
+        </where>
+    </select>
+
+    <!--查询Book,用于查询所有数据和模糊查询-->
+    <select id="queryBook" resultMap="bookResultMap" parameterType="com.ts.library.entity.Book">
+        select
+        book_id,
+        title,
+        author,
+        press,
+        library.book.type_id,
+        type,
+        amount,
+        stock,
+        last_updated_time,
+        validity
+        from library.book
+        join library.book_type
+        on library.book.type_id = library.book_type.type_id
+        <where>
+            <if test="title != null and !&quot;&quot;.equals(title.trim())">
+                and upper(title) regexp #{title}
+            </if>
+            <if test="author != null and !&quot;&quot;.equals(author.trim())">
+                and upper(author) regexp #{author}
+            </if>
+            <if test="press != null and !&quot;&quot;.equals(press.trim())">
+                and upper(press) regexp #{press}
+            </if>
+            and validity = 1
+        </where>
+    </select>
+
+    <!--新增Book,用于管理员新增Book-->
+    <insert id="addBook" parameterType="com.ts.library.entity.Book" useGeneratedKeys="true" keyProperty="bookId">
+        insert into library.book
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="title != null and !&quot;&quot;.equals(title.trim())">
+                title,
+            </if>
+            <if test="author != null and !&quot;&quot;.equals(author.trim())">
+                author,
+            </if>
+            <if test="press != null and !&quot;&quot;.equals(press.trim())">
+                press,
+            </if>
+            <if test="typeId != null">
+                type_id,
+            </if>
+            <if test="amount != null">
+                amount,
+                stock,
+            </if>
+            last_updated_time,
+            validity
+        </trim>
+        <trim prefix="value(" suffix=")" suffixOverrides=",">
+            <if test="title != null and !&quot;&quot;.equals(title.trim())">
+                #{title},
+            </if>
+            <if test="author != null and !&quot;&quot;.equals(author.trim())">
+                #{author},
+            </if>
+            <if test="press != null and !&quot;&quot;.equals(press.trim())">
+                #{press},
+            </if>
+            <if test="typeId != null">
+                #{typeId},
+            </if>
+            <if test="amount != null">
+                #{amount},
+                #{amount},
+            </if>
+            curdate(),
+            1
+        </trim>
+    </insert>
+
+    <!--修改Book,用于管理员修改Book信息-->
+    <update id="editBook" parameterType="com.ts.library.entity.Book">
+        update library.book
+        <set>
+            <if test="title != null and !&quot;&quot;.equals(title.trim())">
+                title = #{title},
+            </if>
+            <if test="author != null and !&quot;&quot;.equals(author.trim())">
+                author = #{author},
+            </if>
+            <if test="press != null and !&quot;&quot;.equals(press.trim())">
+                press = #{press},
+            </if>
+            <if test="typeId != null">
+                type_id = #{typeId},
+            </if>
+            <if test="amount != null">
+                amount = #{amount},
+            </if>
+            <if test="stock != null">
+                stock = #{stock},
+            </if>
+            last_updated_time = curdate()
+        </set>
+        <where>
+            book_id = #{bookId}
+        </where>
+    </update>
+
+    <!--书籍存量+1,用于读者归还书籍之后还原书籍信息-->
+    <update id="addBookStock" parameterType="java.lang.String">
+        update library.book
+        <set>
+            stock = stock + 1
+        </set>
+        <where>
+            book_id = #{bookId}
+        </where>
+    </update>
+
+    <!--书籍存量-1,用于管理员审批读者借阅书籍之后更新书籍信息-->
+    <update id="reduceBookStock" parameterType="java.lang.String">
+        update library.book
+        <set>
+            stock = stock - 1
+        </set>
+        <where>
+            title = #{title}
+        </where>
+    </update>
+
+    <!--根据传入的bookId删除用户,用于管理员删除Book-->
+    <update id="delBook" parameterType="SHORT">
+        update library.book
+        <set>
+            validity = 0
+        </set>
+        <where>
+            book_id = #{bookId}
+        </where>
+    </update>
+</mapper>
